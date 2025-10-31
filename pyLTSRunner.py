@@ -6,7 +6,7 @@ import json
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
 
-
+import argparse
 
 def get_validated_json_data(filepath_json):
 
@@ -22,17 +22,17 @@ def get_validated_json_data(filepath_json):
     }
     # Read JSON data from file
     with open(filepath_json, "r") as f:
-        jdata = json.load(f)
+        jobDesc = json.load(f)
 
     # Validate
     try:
-        validate(instance=jdata, schema=schema)
+        validate(instance=jobDesc, schema=schema)
         print("JSON is valid!")
     except ValidationError as e:
         exception_message = f"JSON validation error:{e.message}"
         raise Exception(exception_message)
 
-    return jdata
+    return jobDesc
 
 
 
@@ -45,13 +45,22 @@ def processing_data(raw_file, log_file):
 if __name__ == "__main__":
 
 
-    filepath_json = "myJson.json"
-    jData = get_validated_json_data(filepath_json)
+    parser = argparse.ArgumentParser(
+                    prog='pyLTSRunner',
+                    description='Automates LTSpice simulations, including parallel simulations and .npz export of results',
+                    epilog='By VicCos')
+    parser.add_argument('-jobd', '--jobdescription', required=True, help="path tho Json file containing the job description.")
+    args = parser.parse_args()
+
+
+
+    # filepath_json = "myJson.json"
+    jobDesc = get_validated_json_data(args.jobdescription)
 
     # Configures the simulator to use and output folder. Also defines the number of parallel simulations
-    runner = SimRunner(output_folder=f'./{jData["DIR_OUTPUT_RAW"]}', simulator=LTspice, parallel_sims=jData["PRL_SIMS"])
+    runner = SimRunner(output_folder=f'./{jobDesc["DIR_OUTPUT_RAW"]}', simulator=LTspice, parallel_sims=jobDesc["PRL_SIMS"])
 
-    netlist = SpiceEditor(jData["PATH_SPICE_MODEL"])  # Open the Spice Model, and creates the .net
+    netlist = SpiceEditor(jobDesc["PATH_SPICE_MODEL"])  # Open the Spice Model, and creates the .net
     # set default arguments
     netlist.set_component_value('R1', '5')  # Modifying the value of a resistor
 
@@ -75,13 +84,13 @@ if __name__ == "__main__":
 
     diUouts = {}
     for resval in liResValues:
-        raw = RawRead(f"{jData['DIR_OUTPUT_RAW']}/R1_{resval}.raw")
+        raw = RawRead(f"{jobDesc['DIR_OUTPUT_RAW']}/R1_{resval}.raw")
         time = raw.get_axis()
         Uout = raw.get_trace('V(Uout)').get_wave()
         diUouts[resval] = Uout
 
         np.savez_compressed(
-            f"{jData['DIR_STORAGE_NPZ']}/R1_{resval}.npz",
+            f"{jobDesc['DIR_STORAGE_NPZ']}/R1_{resval}.npz",
             time=time,
             Uout=Uout,
             description=f"Data for R1_{resval} dadas")
@@ -103,5 +112,5 @@ if __name__ == "__main__":
     plt.show()
 
 
-    myRecData = data = np.load(f"{jData['DIR_STORAGE_NPZ']}/R1_{liResValues[1]}.npz", allow_pickle=True)
+    myRecData = data = np.load(f"{jobDesc['DIR_STORAGE_NPZ']}/R1_{liResValues[1]}.npz", allow_pickle=True)
     breakpoint()
