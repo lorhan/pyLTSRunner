@@ -17,11 +17,10 @@ def get_validated_json_data(filepath_json):
         "properties": {
             "PATH_SPICE_MODEL": {"type": "string"},
             "DIR_OUTPUT_RAW": {"type": "string"},
-            "DIR_STORAGE_NPZ": {"type": "string"},
             "PRL_SIMS": {"type": "integer", "minimum": 1},
             "LIST_OF_MODIFICATIONS": {"type":"array"},
         },
-        "required": ["PATH_SPICE_MODEL", "DIR_OUTPUT_RAW", "DIR_STORAGE_NPZ", "PRL_SIMS","LIST_OF_MODIFICATIONS"]
+        "required": ["PATH_SPICE_MODEL", "DIR_OUTPUT_RAW", "PRL_SIMS","LIST_OF_MODIFICATIONS"]
     }
     # Read JSON data from file
     with open(filepath_json, "r") as f:
@@ -126,6 +125,7 @@ def run_simulations(jobDesc):
     nrModifs = len(jobDesc["LIST_OF_MODIFICATIONS"])
     nrZeroPads = int(np.ceil(np.log10(nrModifs)))
     liRunBaseNames = []
+    lidiReturnData = []
     for cnt,modifData in enumerate(jobDesc["LIST_OF_MODIFICATIONS"]):
         
         for rawModifItem in modifData["ModifList"]:
@@ -142,31 +142,18 @@ def run_simulations(jobDesc):
         run_netlist_file = f"{simRunBaseName}.net"
         # This will launch up to 'parallel_sims' simulations in background before waiting for resources
         runner.run(netlist, run_filename=run_netlist_file, callback=processing_data)
-
-
+        rawFile = f"{jobDesc['DIR_OUTPUT_RAW']}/{simRunBaseName}.raw"
+        lidiReturnData.append({"modifData":modifData,"simRunBaseName":simRunBaseName,"rawFile":rawFile})
     # This will wait for the all the simulations launched before to complete.
     runner.wait_completion()
-    # The timeout counter is reset everytime a simulation is finished.
 
 
-    # Saving selected results in .npz format
-    for runBaseName in liRunBaseNames:
-        rawFile = f"{jobDesc['DIR_OUTPUT_RAW']}/{runBaseName}.raw"
-        raw = RawRead(rawFile)
-        time = raw.get_axis()
-        Uout = raw.get_trace('V(Uout)').get_wave()
 
-        np.savez_compressed(
-            f"{jobDesc['DIR_STORAGE_NPZ']}/{runBaseName}.npz",
-            time_s=time,
-            Uout_V=Uout,
-            description=f"Data for {runBaseName}.")
-
-    diReturnData = {"liRunBaseNames":liRunBaseNames}
     # Sim Statistics
     print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
-    return diReturnData
+    return lidiReturnData
 
+#==================================================================================
 def rawRead(rawFile):
     return RawRead(rawFile)
 
@@ -177,7 +164,6 @@ def handler_for_usage_test(jobDesc_input):
         # filepath_json = "myJson.json"
     jobDesc = get_validated_json_data(jobDesc_input)
     diReturnData = run_simulations(jobDesc)
-    diReturnData["jobDesc"] = jobDesc
     return diReturnData
 
 
@@ -208,12 +194,6 @@ if __name__ == "__main__":
         Uout = raw.get_trace('V(Uout)').get_wave()
         diUouts[resval] = Uout
 
-        np.savez_compressed(
-            f"{jobDesc['DIR_STORAGE_NPZ']}/R1_{resval}.npz",
-            time=time,
-            Uout=Uout,
-            description=f"Data for R1_{resval} dadas")
-
 
         plt.plot(time, Uout,label = f"R1={resval}")
 
@@ -224,17 +204,12 @@ if __name__ == "__main__":
 
 
 
+    for diMods in jobDesc['LIST_OF_MODIFICATIONS']:
+        for mymods in diMods.keys():
+            print(f"{mymods}:{diMods[mymods]}")
 
 
     plt.legend()
     plt.grid()
     plt.show()
 
-    for diMods in jobDesc['LIST_OF_MODIFICATIONS']:
-        for mymods in diMods.keys():
-            print(f"{mymods}:{diMods[mymods]}")
-
-
-
-    myRecData = np.load(f"{jobDesc['DIR_STORAGE_NPZ']}/R1_{liResValues[1]}.npz", allow_pickle=True)
-    breakpoint()

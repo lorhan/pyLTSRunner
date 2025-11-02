@@ -4,7 +4,6 @@
 {
     "PRL_SIMS" : 3,
     "DIR_OUTPUT_RAW" : "temp_batch3",
-    "DIR_STORAGE_NPZ" : "results_in_npz",
     "PATH_SPICE_MODEL" : "Model_SimpleRLC/Draft1.asc",
     "LIST_OF_MODIFICATIONS":[
         {"ModifDescription":"Desc1","ModifList":["Comp:R1:1k", "Comp:L1:0.2u"]}
