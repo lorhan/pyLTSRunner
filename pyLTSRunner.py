@@ -38,6 +38,67 @@ def get_validated_json_data(filepath_json):
     return jobDesc
 
 
+def sanity_check_for_netlist(netlist):
+
+    liComps = set(netlist.get_components())
+    setComps = set(liComps)
+    liParams = set(netlist.get_all_parameter_names())
+    setParams = set(liParams)
+    
+    # CHECK: you cant have multiple components with the same name
+    liDuplicateComps = [i for i in setComps if liComps.count(i) > 1]
+    if(len(liDuplicateComps) > 0):
+        strReportError = "ERROR: you cant have multiple components with the same name."
+        strReportError += f"\nHere is a list with the repeats: {liDuplicateComps}" 
+        raise Exception(strReportError)
+    
+    # CHECK: you cant have multiple parameters with the same name
+    liDuplicateParams = [i for i in setParams if liParams.count(i) > 1]
+    if(len(liDuplicateParams) > 0):
+        strReportError = "ERROR: you cant have multiple parameters with the same name."
+        strReportError += f"\nHere is a list with the repeats: {liDuplicateParams}" 
+        raise Exception(strReportError)
+    
+    # CHECK: you cant have repeated names among components and parameters
+    setIntersecCompsParams = setComps & setParams
+    if(len(setIntersecCompsParams) > 0):
+        strReportError = "ERROR: you cant have names which are both a component and a parameter."
+        strReportError += f"\nHere is a list with the problem-names: {setIntersecCompsParams}" 
+        raise Exception(strReportError)
+
+    print("PASSED: sanity check for netlist.")
+
+
+# def sanity_check_for_list_of_modifications(liModifs):
+#     # CHECK: Sanity check for modification list
+#     liCompNamesInModif = []
+#     liParamNamesInModif = []
+#     for rawModifItem in liModifs:
+#         modifItem = get_parsed_and_sanity_checked_modif_item(rawModifItem)
+#         if(modifItem["type"] == "Comp"):
+#             liCompNamesInModif.append(modifItem["name"])
+#         else:
+#             liParamNamesInModif.append(modifItem["name"])
+    
+#     liDuplCompNames = set([i for i in set(liCompNamesInModif) if liCompNamesInModif.count(i) > 1])
+#     if(len(liDuplCompNames) > 0):
+#         strReportError = "ERROR: you cant have multiple parameters with the same name."
+#         strReportError += f"\nHere is a list with the repeats: {liDuplicateParams}" 
+#         raise Exception(strReportError)
+
+    
+
+def get_parsed_and_sanity_checked_modif_item(str_raw_modif_item):
+    liAux = str_raw_modif_item.split(":")
+    liAux = [n.strip() for n in liAux]
+
+    errorCheck1 = len(liAux) != 3 
+    errorCheck2 = liAux[0] not in ["Comp","Param"]
+    if(any([errorCheck1, errorCheck2])):
+        strReportError = f"ERROR: invalid modification item: {str_raw_modif_item}."
+        raise Exception(strReportError)
+
+    return{"type":liAux[0],"name":liAux[1],"value":liAux[2]}
 
 
 
@@ -58,21 +119,56 @@ def run_simulations(jobDesc):
     # set default arguments
     netlist.set_component_value('R1', '5')  # Modifying the value of a resistor
 
-    liResValues = [f"{n}" for n in [1,2,3,4]]
-    for res_value in liResValues:
-        netlist.set_component_value('R1', res_value)
+
+    liComponents = netlist.get_components()
+    liParameters = netlist.get_all_parameter_names()
+    
+    nrModifs = len(jobDesc["LIST_OF_MODIFICATIONS"])
+    nrZeroPads = int(np.ceil(np.log10(nrModifs)))
+    liRunBaseNames = []
+    for cnt,modifData in enumerate(jobDesc["LIST_OF_MODIFICATIONS"]):
+        
+        for rawModifItem in modifData["ModifList"]:
+            parModIt = get_parsed_and_sanity_checked_modif_item(rawModifItem)
+            if(parModIt["type"] == "Comp"):
+                netlist.set_component_value(parModIt["name"] , parModIt["value"] )
+            else:
+                netlist.set_parameter(parModIt["name"] , parModIt["value"] )
+
+        
+        simRunBaseName = f"Modif_{str(cnt).zfill(nrZeroPads)}_{modifData['ModifDescription']}"
+        liRunBaseNames.append(simRunBaseName)
         # overriding he automatic netlist naming
-        run_netlist_file = f"R1_{res_value}.net"
+        run_netlist_file = f"{simRunBaseName}.net"
         # This will launch up to 'parallel_sims' simulations in background before waiting for resources
         runner.run(netlist, run_filename=run_netlist_file, callback=processing_data)
+
 
     # This will wait for the all the simulations launched before to complete.
     runner.wait_completion()
     # The timeout counter is reset everytime a simulation is finished.
 
+
+    # Saving selected results in .npz format
+    for runBaseName in liRunBaseNames:
+        rawFile = f"{jobDesc['DIR_OUTPUT_RAW']}/{runBaseName}.raw"
+        raw = RawRead(rawFile)
+        time = raw.get_axis()
+        Uout = raw.get_trace('V(Uout)').get_wave()
+
+        np.savez_compressed(
+            f"{jobDesc['DIR_STORAGE_NPZ']}/{runBaseName}.npz",
+            time_s=time,
+            Uout_V=Uout,
+            description=f"Data for {runBaseName}.")
+
+    diReturnData = {"liRunBaseNames":liRunBaseNames}
     # Sim Statistics
     print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+    return diReturnData
 
+def rawRead(rawFile):
+    return RawRead(rawFile)
 
 
 
@@ -80,7 +176,9 @@ def run_simulations(jobDesc):
 def handler_for_usage_test(jobDesc_input):
         # filepath_json = "myJson.json"
     jobDesc = get_validated_json_data(jobDesc_input)
-    run_simulations(jobDesc)
+    diReturnData = run_simulations(jobDesc)
+    diReturnData["jobDesc"] = jobDesc
+    return diReturnData
 
 
 #==================================================================================
