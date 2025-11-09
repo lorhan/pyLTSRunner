@@ -5,6 +5,9 @@ import numpy as np
 import json
 from jsonschema import validate
 from jsonschema.exceptions import ValidationError
+import shutil
+import os
+
 
 import argparse
 
@@ -114,13 +117,9 @@ def run_simulations(jobDesc):
     # Configures the simulator to use and output folder. Also defines the number of parallel simulations
     runner = SimRunner(output_folder=f'./{jobDesc["DIR_OUTPUT_RAW"]}', simulator=LTspice, parallel_sims=jobDesc["PRL_SIMS"])
 
-    netlist = SpiceEditor(jobDesc["PATH_SPICE_MODEL"])  # Open the Spice Model, and creates the .net
-    # set default arguments
-    netlist.set_component_value('R1', '5')  # Modifying the value of a resistor
+    # Open the Spice Model, and creates the .net
+    netlist = SpiceEditor(jobDesc["PATH_SPICE_MODEL"])  
 
-
-    liComponents = netlist.get_components()
-    liParameters = netlist.get_all_parameter_names()
     
     nrModifs = len(jobDesc["LIST_OF_MODIFICATIONS"])
     nrZeroPads = int(np.ceil(np.log10(nrModifs)))
@@ -166,6 +165,18 @@ def handler_for_usage_test(jobDesc_input):
     diReturnData = run_simulations(jobDesc)
     return diReturnData
 
+#==================================================================================
+def copy_libfiles_to_ltspice_dir(dirSub, dirSym, dirLocalLibFiles):
+    try:
+        for file in os.listdir(dirLocalLibFiles):
+            fileFullPath = os.path.abspath(os.path.join(dirLocalLibFiles, file))
+            if(file.lower().endswith(".asy")):
+                shutil.copy(fileFullPath, dirSym)
+            elif(file.lower().endswith(".sub")):
+                shutil.copy(fileFullPath, dirSub)
+    except Exception as e:
+        raise Exception(f"Error in copy_libraries_to_ltspice_dir:\n{e}")
+    
 
 #==================================================================================
 if __name__ == "__main__":

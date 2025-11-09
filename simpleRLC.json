@@ -6,7 +6,7 @@
     "DIR_OUTPUT_RAW" : "temp_batch3",
     "PATH_SPICE_MODEL" : "Model_SimpleRLC/Draft1.asc",
     "LIST_OF_MODIFICATIONS":[
-        {"ModifDescription":"Desc1","ModifList":["Comp:R1:1k", "Comp:L1:0.2u"]}
+        {"ModifDescription":"Desc1","ModifList":["Comp:R1:1", "Comp:L1:1u"]}
         ,{"ModifDescription":"Test02dasd","ModifList":["Comp:R1:4", "Comp:L1:1u"]}
         ,{"ModifDescription":"Test03dddqw","ModifList":["Comp:R1:2", "Comp:L1:3u"]}
     ]
