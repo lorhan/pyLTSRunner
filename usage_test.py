@@ -4,30 +4,35 @@ import numpy as np
 
 
 def demonstrate_library_management():
+    runner = pltsr.pyLTSRunner()
     dirLTSpice = r"C:\Users\Nutzer\AppData\Local\LTspice\lib"
-    pltsr.copy_libfiles_to_ltspice_dir(dirSub=dirLTSpice+"\sub", dirSym=dirLTSpice+"\sym", dirLocalLibFiles="library_files")
+    runner.copy_libfiles_to_ltspice_dir(dirSub=dirLTSpice+"\sub", dirSym=dirLTSpice+"\sym", dirLocalLibFiles="library_files")
 
 
-# jobdescription = "flyback.json"
-# # jobdescription = "simpleRLC.json"
-# lidiReturnData = pltsr.handler_for_usage_test(jobdescription)
+def demonstrate_running_simulation():
+    jobdescription = "flyback.json"
+    # jobdescription = "simpleRLC.json"
+    runner = pltsr.pyLTSRunner()
+    lidiReturnData = runner.run_simulation_from_jobfile(jobdescription)
 
 
-# for diReturnData in lidiReturnData:
-#     raw = pltsr.rawRead(diReturnData["rawFile"])
-#     time = raw.get_axis()
-#     Uout = raw.get_trace('V(Uout)').get_wave()
-#     plt.plot(time, Uout,label = diReturnData["simRunBaseName"])
+    for diReturnData in lidiReturnData:
+        raw = runner.rawRead(diReturnData["rawFile"])
+        time = raw.get_axis()
+        Uout = raw.get_trace('V(Uout)').get_wave()
+        plt.plot(time, Uout,label = diReturnData["simRunBaseName"])
 
 
-# plt.legend()
-# plt.grid()
-# plt.show()
+    plt.legend()
+    plt.grid()
+    plt.show()
 
 
 if __name__ == "__main__":
     print("Start of demonstration")
 
-    demonstrate_library_management()
-
+    # demonstrate_library_management()
+    
+    demonstrate_running_simulation()
+    
     print("End of demonstration")
