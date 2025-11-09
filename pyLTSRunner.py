@@ -152,11 +152,25 @@ class pyLTSRunner():
 
         # Sim Statistics
         print('Successful/Total Simulations: ' + str(runner.okSim) + '/' + str(runner.runno))
+
+        # Exporting job lidiReturnData to results folder
+        with open(f"{jobDesc['DIR_OUTPUT_RAW']}/returnData.json","w") as f:
+            json.dump(lidiReturnData, f, indent=4)
+            
         return lidiReturnData
 
     #==================================================================================
     def rawRead(self, rawFile):
         return RawRead(rawFile)
+    
+
+    #==================================================================================
+    def get_results(self, pathResults):
+        filePathReturnData = os.path.join(pathResults, "returnData.json")
+        with open(filePathReturnData, "r") as f:
+            jsonReturnData = json.load(f)
+        return jsonReturnData
+
 
 
 
