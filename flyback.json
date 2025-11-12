@@ -1,0 +1,14 @@
+
+
+
+{
+    "PRL_SIMS" : 3,
+    "DIR_OUTPUT_RAW" : "Flyback_RawFiles",
+    "PATH_SPICE_MODEL" : "Flyback_Modelv02/flyback.asc",
+    "LIST_OF_MODIFICATIONS":[
+        {"ModifDescription":"Rcomp 1k","ModifList":["Comp:Rcomp:1k"]}
+        , {"ModifDescription":"Rcomp 5k","ModifList":["Comp:Rcomp:5k"]}
+        , {"ModifDescription":"Rcomp 10k","ModifList":["Comp:Rcomp:10k"]}
+        , {"ModifDescription":"Rcomp 20k","ModifList":["Comp:Rcomp:20k"]}
+    ]
+}
