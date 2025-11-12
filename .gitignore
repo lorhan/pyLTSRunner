@@ -4,6 +4,7 @@
 !pyLTSRunner.py
 !usage_test.py
 !simpleRLC.json
+!flyback.json
 !**/*.asc
 !**/*.asy
 !**/*.sub
