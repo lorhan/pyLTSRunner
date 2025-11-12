@@ -1,12 +1,21 @@
 import matplotlib.pyplot as plt
 import pyLTSRunner as pltsr
 import numpy as np
+import os
 
 
 def demonstrate_library_management():
     runner = pltsr.pyLTSRunner()
-    dirLTSpice = r"C:\Users\Nutzer\AppData\Local\LTspice\lib"
-    runner.copy_libfiles_to_ltspice_dir(dirSub=dirLTSpice+"\sub", dirSym=dirLTSpice+"\sym", dirLocalLibFiles="library_files")
+    
+    # Windows example
+    # dirLTSpice = r"C:\Users\Nutzer\AppData\Local\LTspice\lib"
+    
+    # Linux (with Wine) example:
+    dirLTSpice = os.path.expanduser("~/.wine/drive_c/Program Files/LTC/LTspiceXVII/lib")
+    dirSub = os.path.join(dirLTSpice,"sub")
+    dirSym = os.path.join(dirLTSpice,"sym")
+
+    runner.copy_libfiles_to_ltspice_dir(dirSub, dirSym, dirLocalLibFiles="library_files")
 
 
 def demonstrate_browsing_results():
@@ -34,10 +43,10 @@ def demonstrate_running_simulation():
 if __name__ == "__main__":
     print("Start of demonstration")
 
-    # demonstrate_library_management()
+    demonstrate_library_management()
     
     # demonstrate_running_simulation()
 
-    demonstrate_browsing_results()
+    # demonstrate_browsing_results()
     
     print("End of demonstration")
